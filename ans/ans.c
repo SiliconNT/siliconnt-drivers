@@ -52,8 +52,8 @@ AnsFindAdapter(
      * No hardware resources are used, so Storport must not connect the interrupts.
      * The skeleton cannot clear the controller's level-triggered line without
      * touching its registers: if the line were asserted, connecting it would leave
-     * an interrupt nobody can acknowledge. Storport skips connecting interrupts
-     * and setting up DMA when VirtualDevice is set here (SiliconNT findings/0065).
+     * an interrupt nobody can acknowledge. Storport does not connect the interrupts
+     * when VirtualDevice is set here (SiliconNT findings/0065).
      */
     ConfigInfo->VirtualDevice = TRUE;
 

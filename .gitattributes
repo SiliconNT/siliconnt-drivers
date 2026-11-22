@@ -1,0 +1,3 @@
+# Windows-only sources: always check out with CRLF, whatever core.autocrlf says, so an
+# INF (and the catalog made from it) has the same bytes in every clone.
+* text=auto eol=crlf

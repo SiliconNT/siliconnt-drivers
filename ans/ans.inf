@@ -1,0 +1,52 @@
+;
+; ans.inf - internal disk controller of Apple silicon Macs (skeleton, reports no disks)
+;
+; Device: ACPI\SLNT0001, the ANS0 node of the SiliconNT firmware.
+; Boot-start (StartType 0), like the in-box storage miniports.
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = SCSIAdapter
+ClassGuid   = {4D36E97B-E325-11CE-BFC1-08002BE10318}
+Provider    = %SiliconNT%
+CatalogFile = ans.cat
+DriverVer   = 01/01/2026,0.1.0.0
+PnpLockdown = 1
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+ans.sys = 1,,
+
+[DestinationDirs]
+Ans_CopyFiles = 13 ; driver store; in-box ARM64 boot-start drivers such as genpass.inf run from it too
+
+[Manufacturer]
+%SiliconNT% = SiliconNT,NTarm64.10.0...16299
+
+[SiliconNT.NTarm64.10.0...16299]
+%Ans.DeviceDesc% = Ans_Install, ACPI\SLNT0001
+
+[Ans_Install.NT]
+CopyFiles = Ans_CopyFiles
+
+[Ans_CopyFiles]
+ans.sys
+
+[Ans_Install.NT.Services]
+AddService = ans, 0x00000002, Ans_Service ; SPSVCINST_ASSOCSERVICE
+
+[Ans_Service]
+DisplayName   = %Ans.ServiceDesc%
+ServiceType   = 1               ; SERVICE_KERNEL_DRIVER
+StartType     = 0               ; SERVICE_BOOT_START
+ErrorControl  = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary = %13%\ans.sys
+
+[Strings]
+SiliconNT          = "SiliconNT"
+DiskName           = "SiliconNT ans driver disk"
+Ans.DeviceDesc     = "Apple internal disk controller (SiliconNT)"
+Ans.ServiceDesc    = "SiliconNT Apple internal disk controller"

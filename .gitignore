@@ -1,0 +1,26 @@
+# Build and signing output (build.ps1, sign.ps1)
+out/
+
+# Signing material never belongs in this repository (it lives in
+# %USERPROFILE%\SiliconNT-build\signing, see README.md)
+*.pfx
+*.p12
+*.pvk
+*.snk
+*.key
+*.pem
+
+# Anything a stray Visual Studio or MSBuild run leaves next to the sources
+.vs/
+*.user
+ARM64/
+x64/
+Release/
+Debug/
+*.obj
+*.pdb
+*.sys
+*.cat
+*.cer
+*.tlog
+*.log

@@ -28,6 +28,7 @@ sp_DRIVER_INITIALIZE DriverEntry;
 HW_FIND_ADAPTER AnsFindAdapter;
 HW_INITIALIZE AnsInitialize;
 HW_STARTIO AnsStartIo;
+HW_INTERRUPT AnsInterrupt;
 HW_RESET_BUS AnsResetBus;
 HW_ADAPTER_CONTROL AnsAdapterControl;
 
@@ -52,8 +53,7 @@ AnsFindAdapter(
      * The skeleton cannot clear the controller's level-triggered line without
      * touching its registers: if the line were asserted, connecting it would leave
      * an interrupt nobody can acknowledge. Storport skips connecting interrupts
-     * and setting up DMA when VirtualDevice is set here; a NULL HwInterrupt
-     * alone does not stop it from connecting (SiliconNT findings/0065).
+     * and setting up DMA when VirtualDevice is set here (SiliconNT findings/0065).
      */
     ConfigInfo->VirtualDevice = TRUE;
 
@@ -91,6 +91,19 @@ AnsStartIo(
 
     StorPortNotification(RequestComplete, DeviceExtension, Srb);
     return TRUE;
+}
+
+/*
+ * Never called: the interrupts are not connected (AnsFindAdapter). Storport's
+ * documentation requires the entry point, so it is here and claims nothing.
+ */
+BOOLEAN
+AnsInterrupt(
+    _In_ PVOID DeviceExtension
+    )
+{
+    UNREFERENCED_PARAMETER(DeviceExtension);
+    return FALSE;
 }
 
 BOOLEAN
@@ -158,9 +171,9 @@ DriverEntry(
     init.HwFindAdapter = AnsFindAdapter;
     init.HwInitialize = AnsInitialize;
     init.HwStartIo = AnsStartIo;
+    init.HwInterrupt = AnsInterrupt;
     init.HwResetBus = AnsResetBus;
     init.HwAdapterControl = AnsAdapterControl;
-    /* HwInterrupt stays NULL: the interrupts are not connected (AnsFindAdapter). */
 
     init.DeviceExtensionSize = sizeof(ANS_ADAPTER);
     init.NumberOfAccessRanges = ANS_MEMORY_RANGES;

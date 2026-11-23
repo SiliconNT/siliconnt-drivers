@@ -2,6 +2,8 @@
 <!--
   ans.sys and its INF, built with the EWDK (see ../build.ps1).
   WDK test signing and Inf2Cat are off: ../sign.ps1 makes and signs the catalog.
+  The core (core/) is compiled in from its sources, the same files core/ans_core.vcxproj
+  and the model test build. AnsBuildId (build.ps1 passes the commit) goes into the log.
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
@@ -33,6 +35,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <PreprocessorDefinitions Condition="'$(AnsBuildId)' != ''">ANS_BUILD_ID=$(AnsBuildId);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)storport.lib</AdditionalDependencies>
@@ -44,7 +47,17 @@
     </Inf>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ans.c" />
+    <ClCompile Include="miniport.c" />
+    <ClCompile Include="env_storport.c" />
+    <ClCompile Include="scsi.c" />
+    <ClCompile Include="dsd.c" />
+    <ClCompile Include="log.c" />
+    <ClCompile Include="format.c" />
+    <ClCompile Include="core\asc.c" />
+    <ClCompile Include="core\nvme.c" />
+    <ClCompile Include="core\pmgr.c" />
+    <ClCompile Include="core\rtkit.c" />
+    <ClCompile Include="core\sart.c" />
     <Inf Include="ans.inf" />
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>

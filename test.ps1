@@ -1,14 +1,17 @@
 <#
 .SYNOPSIS
-    Tests the disk controller core (ans\core) with the EWDK: runs the model test and
-    builds the core as ARM64 Windows kernel code.
+    Tests the disk controller core (ans\core) and the miniport's pure parts with the
+    EWDK: runs the model test and the host test, and builds the core as ARM64 Windows
+    kernel code.
 
 .DESCRIPTION
     Checks the EWDK ISO, mounts it and sets up its build environment, as build.ps1
     does (both use ewdk.ps1). Then:
       1. Builds the model test (ans\core\test) as an x64 console program with the
          EWDK's MSVC, warnings as errors and AddressSanitizer, and runs it.
-      2. Builds ans\core\ans_core.vcxproj: the core as a static library with the
+      2. Builds the host test (ans\test) the same way and runs it: the miniport's SCSI
+         layer, _DSD parser and log formatter (ans\scsi.c, dsd.c, format.c).
+      3. Builds ans\core\ans_core.vcxproj: the core as a static library with the
          miniport's toolset and options (Release|ARM64, kernel mode, /W4 /WX).
     Stops at the first failure. Nothing else is installed or used.
 
@@ -16,6 +19,8 @@
       out\test\model_test.exe                  the model test (model_test.exe -v <name>
                                                runs the tests whose name contains <name>
                                                and prints the core's log)
+      out\test\host_test.exe                   the host test (host_test.exe <name> runs
+                                               the tests whose name contains <name>)
       out\test\core-arm64\bin\ans_core.lib     the core as ARM64 kernel code
       out\test\core-arm64\msbuild.log
 
@@ -36,10 +41,14 @@ $core = Join-Path $repo 'ans\core'
 $out  = Join-Path $repo 'out\test'
 $obj  = Join-Path $out 'obj'
 $exe  = Join-Path $out 'model_test.exe'
+$ans  = Join-Path $repo 'ans'
+$hobj = Join-Path $out 'host-obj'
+$hexe = Join-Path $out 'host_test.exe'
 $km   = Join-Path $out 'core-arm64'
 
 if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
 New-Item -ItemType Directory -Path $obj | Out-Null
+New-Item -ItemType Directory -Path $hobj | Out-Null
 
 Use-Ewdk $IsoPath {
     param($root)
@@ -58,6 +67,9 @@ set "LIB=%VCToolsInstallDir%lib\x64;%WindowsSdkDir%Lib\%Version_Number%\ucrt\x64
 echo === model test (x64, AddressSanitizer)
 cl /nologo /std:c11 /W4 /WX /O1 /Zi /fsanitize=address /I"$core" /Fo"$obj\\" /Fd"$obj\\" /Fe"$exe" "$core\*.c" "$core\test\*.c" >"$obj\cl.log" || (type "$obj\cl.log" & exit /b 1)
 "$exe" || exit /b 1
+echo === host test of the miniport's SCSI layer, _DSD parser and formatter (x64, AddressSanitizer)
+cl /nologo /std:c11 /W4 /WX /O1 /Zi /fsanitize=address /I"$ans" /Fo"$hobj\\" /Fd"$hobj\\" /Fe"$hexe" "$ans\scsi.c" "$ans\dsd.c" "$ans\format.c" "$ans\test\host_test.c" >"$hobj\cl.log" || (type "$hobj\cl.log" & exit /b 1)
+"$hexe" || exit /b 1
 echo === the core as ARM64 kernel code
 msbuild "$core\ans_core.vcxproj" /nologo /m:1 /v:minimal "/p:Configuration=Release" "/p:Platform=ARM64" "/p:OutDir=$km\bin\\" "/p:IntDir=$km\obj\\" "/flp:LogFile=$km\msbuild.log;Verbosity=normal"
 exit /b %ERRORLEVEL%
@@ -67,4 +79,4 @@ exit /b %ERRORLEVEL%
 
 $lib = Join-Path $km 'bin\ans_core.lib'
 if (-not (Test-Path -LiteralPath $lib)) { throw "The build did not produce $lib" }
-Write-Host 'Model test passed; the core builds as ARM64 kernel code.'
+Write-Host 'Model test and host test passed; the core builds as ARM64 kernel code.'

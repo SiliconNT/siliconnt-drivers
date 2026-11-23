@@ -1,5 +1,5 @@
 ;
-; ans.inf - internal disk controller of Apple silicon Macs (skeleton, reports no disks)
+; ans.inf - internal disk controller of Apple silicon Macs, read-only
 ;
 ; Device: ACPI\SLNT0001, the ANS0 node of the SiliconNT firmware.
 ; Boot-start (StartType 0), like the in-box storage miniports.
@@ -11,7 +11,7 @@ Class       = SCSIAdapter
 ClassGuid   = {4D36E97B-E325-11CE-BFC1-08002BE10318}
 Provider    = %SiliconNT%
 CatalogFile = ans.cat
-DriverVer   = 01/01/2026,0.1.0.0
+DriverVer   = 11/23/2026,0.2.0.0
 PnpLockdown = 1
 
 [SourceDisksNames]
@@ -48,5 +48,5 @@ ServiceBinary = %13%\ans.sys
 [Strings]
 SiliconNT          = "SiliconNT"
 DiskName           = "SiliconNT ans driver disk"
-Ans.DeviceDesc     = "Apple internal disk controller (SiliconNT)"
-Ans.ServiceDesc    = "SiliconNT Apple internal disk controller"
+Ans.DeviceDesc     = "Apple internal disk controller (SiliconNT, read-only)"
+Ans.ServiceDesc    = "SiliconNT Apple internal disk controller (read-only)"

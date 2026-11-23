@@ -7,7 +7,20 @@ the SiliconNT repository (`docs/DESIGN.md`).
 
 | Directory | Device | State |
 |---|---|---|
-| `ans/` | Internal disk controller, `ACPI\SLNT0001` | Skeleton: a Storport miniport that loads at boot, starts the device and reports no disks. It never maps or touches the controller's registers, never starts its coprocessor and does not connect its interrupts. |
+| `ans/` | Internal disk controller, `ACPI\SLNT0001` | Read-only Storport miniport: starts the controller's coprocessor, shows the internal disk to Windows as write protected, reads; refuses every command that writes and every pass-through request. Not yet run on a Mac. No crash dump or hibernation. |
+
+`ans/` in more detail:
+
+| Path | What |
+|---|---|
+| `ans/core/` | Everything that talks to the controller (coprocessor, mailbox, SART, NVMe queues, reset), from m1n1 v1.9.9's MIT files (`LICENSE.m1n1`). Plain C with no operating system in it: the same code runs in the m1n1 test guest and, later, the firmware. The only NVMe commands it can send are on a whitelist: create and delete the I/O queues, identify, read. `ans_core.h` and `ans_env.h` are its interface. |
+| `ans/core/test/` | The model test: the core against a fake controller on the host. |
+| `ans/miniport.c` | Storport's entry points. |
+| `ans/env_storport.c` | The core's environment on Windows (registers, memory for the device, waiting, the log). |
+| `ans/scsi.c` | What the disk answers to SCSI commands; refuses writes. |
+| `ans/dsd.c` | Reads the ACPI node's `_DSD`. |
+| `ans/log.c`, `format.c` | The driver's log: a ring in the driver's own memory, readable without a debugger (see below). |
+| `ans/test/` | The host test of `scsi.c`, `dsd.c` and `format.c`. |
 
 The drivers are test-signed. A machine runs them only with test signing turned on in its
 boot configuration; the SiliconNT boot disk does that.
@@ -46,6 +59,9 @@ powershell -ExecutionPolicy Bypass -File .\sign.ps1
 `build.ps1` builds `Release|ARM64` with the EWDK's MSBuild and checks each INF with
 `infverif /w`; `sign.ps1` signs each `.sys`, makes its catalog with `Inf2Cat`
 (`/os:10_GE_ARM64`) and signs the catalog. Both print the SHA-256 of what they made.
+`build.ps1` writes the commit into the driver (it shows in the driver's log), with
+`_dirty` after it when the working tree has changes: build packages that go onto a Mac
+from a clean, committed tree. Every build gives a `.sys` with a different SHA-256.
 
 Output, all under `out\` (deleted and remade by every build):
 
@@ -63,6 +79,27 @@ To look at the result, with the EWDK mounted (here as `G:`):
 
 The chain ends in the test certificate, which this machine does not trust, so `signtool`
 reports an untrusted root. That is expected.
+
+## Test
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\test.ps1
+```
+
+Runs, with the EWDK's compiler on the host (x64, AddressSanitizer): the model test of the
+core (`out\test\model_test.exe`) and the host test of the miniport's SCSI layer, `_DSD`
+parser and formatter (`out\test\host_test.exe`); then builds the core as ARM64 kernel
+code. Each test program prints one line per test and a summary; the script stops at the
+first failure and ends with `Model test and host test passed`.
+
+## The `ans` log
+
+`ans.sys` keeps its log in its own memory: a header that starts with the 16 bytes
+`SiliconNTansLog1`, a block of counters, and a ring of text lines. The layout is at the top
+of `ans/log.h`. It is there to be read without a debugger, from a copy of the machine's
+memory taken after the guest is stopped; with a debugger it is the symbol
+`ans!g_ans_log`, and each line also goes to the debugger. The log never holds the disk's
+serial number or anything read from the disk.
 
 ## License
 

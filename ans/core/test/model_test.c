@@ -999,11 +999,16 @@ static void test_completions_after_crash(void)
     memset(&d, 0, sizeof(d));
     poll(r, &d);
     CHECK(ans_get_state(&r->core) == ANS_CRASHED);
-    fake_post_cqe(&r->f, 1, 5, 0); /* a completion that comes in after the crash */
-    CHECK(t_isr(r, on_done, &d));
-    CHECK(d.count == 0);
-    CHECK(r->core.nvme.q[ANS_NVME_IOQ].cq_head == 1);
+    /* stopped on the spot: RUN cleared, then the reset; nothing of the NVMe range touched */
+    CHECK((r->f.cpu_control & 0x10) == 0);
+    CHECK(r->f.resets == 2);
+    CHECK(r->core.hw == ANS_HW_MEMORY);
+    /* a completion entry appearing afterwards is left alone; the fake assumes the
+       stopped controller holds its line low (unconfirmed, R38) */
+    fake_post_cqe(&r->f, 1, 5, 0);
     CHECK(!t_isr(r, on_done, &d));
+    CHECK(d.count == 0);
+    CHECK(r->core.nvme.q[ANS_NVME_IOQ].cq_head == 0);
     stop(r);
     rig_finish(r);
 }

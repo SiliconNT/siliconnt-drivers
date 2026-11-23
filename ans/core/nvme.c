@@ -1089,12 +1089,9 @@ bool ans_isr(struct ans_core *core, ans_done_fn *done, void *ctx)
             break;
     }
 
-    /*
-     * After a crash the completions are still taken off the queues, so the controller's
-     * line does not stay high, but not reported: the caller completes those reads.
-     */
+    /* after a crash nothing of the NVMe range is touched: there is nothing to say it still works */
     if (core->state == ANS_CRASHED || rtkit_crashed(core))
-        done = NULL;
+        return handled;
     if (core->hw >= ANS_HW_NVME_EN && nvme_handle_cq(core, ANS_NVME_ADMINQ, NULL, NULL))
         handled = true;
     if (core->hw >= ANS_HW_IOCQ && nvme_handle_cq(core, ANS_NVME_IOQ, done, ctx))
@@ -1106,6 +1103,12 @@ bool ans_isr(struct ans_core *core, ans_done_fn *done, void *ctx)
  * Handles the coprocessor's messages that ans_isr() took in. Only while the core is
  * ready: during ans_start() and ans_stop() the waiting thread handles them itself,
  * because answering may need memory.
+ *
+ * When the coprocessor crashed or the conversation with it failed, the controller is
+ * stopped on the spot, as ans_halt() does: RUN cleared, then the reset; CC.EN off only
+ * when the coprocessor did not crash, since after a crash nothing of the NVMe range is
+ * touched. Reads in flight are not completed; the caller completes them when it sees
+ * ANS_CRASHED or ANS_FAILED.
  */
 void ans_mbox_service(struct ans_core *core)
 {
@@ -1117,11 +1120,12 @@ void ans_mbox_service(struct ans_core *core)
     ans_asc_flush(core);
 
     if (rtkit_crashed(core)) {
-        ans_log(core, "ans: coprocessor crashed");
+        ans_log(core, "ans: coprocessor crashed, stopping the controller");
         core->state = ANS_CRASHED;
+        ans_halt(core);
     } else if (core->rtkit.phase == RTKIT_FAILED) {
-        ans_log(core, "ans: coprocessor protocol failed while running");
-        core->state = ANS_FAILED;
+        ans_log(core, "ans: coprocessor protocol failed while running, stopping the controller");
+        ans_halt(core); /* leaves ANS_FAILED */
     }
 }
 

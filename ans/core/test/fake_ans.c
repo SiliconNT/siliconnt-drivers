@@ -877,7 +877,7 @@ void fake_tick(struct fake *f)
 /* The NVMe registers are there once the coprocessor has finished the RTKit handshake. */
 static bool nvme_up(struct fake *f)
 {
-    return f->cp >= CP_WAIT_AP_ON;
+    return f->cp >= CP_WAIT_AP_ON && f->cp != CP_CRASHED; /* after a crash: never */
 }
 
 static uint64_t asc_read(struct fake *f, uint32_t off, unsigned width)

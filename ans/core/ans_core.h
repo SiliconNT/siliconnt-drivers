@@ -150,6 +150,11 @@ struct ans_core {
  *
  * ans_stop() and ans_halt() never call done for reads still in flight; the caller
  * completes those itself (Storport has none in flight when it stops the adapter).
+ *
+ * After ans_mbox_service() the caller looks at ans_get_state(): ANS_CRASHED or
+ * ANS_FAILED means the core has stopped the controller on the spot (as ans_halt()
+ * does) and no read in flight will complete; the caller completes them as failed.
+ * After a crash the core never touches the NVMe registers again.
  */
 int ans_probe(struct ans_core *core, struct ans_env *env);
 int ans_start(struct ans_core *core, struct ans_env *env, const struct ans_config *config);

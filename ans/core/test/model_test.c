@@ -907,6 +907,9 @@ static void test_buffer_request_while_running(void)
     CHECK(ans_get_state(&r->core) == ANS_FAILED);
     CHECK(ans_get_stats(&r->core)->msgs_refused == 1);
     CHECK(env_logged(&r->env, "a buffer while running"));
+    /* stopped on the spot: RUN cleared, then the reset, before anyone calls ans_stop() */
+    CHECK((r->f.cpu_control & 0x10) == 0 && (r->f.nvme_cc & 1) == 0);
+    CHECK(r->f.resets == 2);
     struct buf b = buf_new(r, 4096);
     struct ans_segment s = {b.dva, 4096};
     CHECK(t_read(r, 0, 0, 1, &s, 1) == ANS_ERR_STATE);

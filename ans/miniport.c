@@ -36,8 +36,10 @@
 #define BUILD "(no build id)"
 #endif
 
-/* _DSD as a method name for StorPortInvokeAcpiMethod: the bytes '_', 'D', 'S', 'D'. */
+/* _DSD as an ACPI name: the bytes '_', 'D', 'S', 'D'. */
 #define ACPI_METHOD_DSD ((ULONG)('_' | ('D' << 8) | ('S' << 16) | ('D' << 24)))
+/* ACPI_EVAL_INPUT_BUFFER_SIGNATURE_V1 'BieA' (acpiioct.h): the bytes 'A', 'e', 'i', 'B'. */
+#define ACPI_EVAL_INPUT_SIGNATURE ((ULONG)('A' | ('e' << 8) | ('i' << 16) | ('B' << 24)))
 
 /* STORAGE_BUS_TYPE BusTypeNvme (ntddstor.h, which storport.h does not include). */
 #define ANS_BUS_TYPE_NVME 0x11
@@ -712,8 +714,16 @@ static ULONG read_dsd(PANS_ADAPTER a)
     ULONG got = 0;
     ULONG status;
     enum ans_dsd_result r;
+    /*
+     * ACPI_EVAL_INPUT_BUFFER_V1. StorPortInvokeAcpiMethod hands the input buffer to ACPI
+     * as it is and does not use its MethodName argument (StorPortpInvokeAcpiMethod,
+     * findings/0073): the name must be in here.
+     */
+    ULONG in[2];
 
-    status = StorPortInvokeAcpiMethod(a, NULL, ACPI_METHOD_DSD, NULL, 0, a->acpi_out,
+    in[0] = ACPI_EVAL_INPUT_SIGNATURE;
+    in[1] = ACPI_METHOD_DSD;
+    status = StorPortInvokeAcpiMethod(a, NULL, ACPI_METHOD_DSD, in, sizeof(in), a->acpi_out,
                                       sizeof(a->acpi_out), &got);
     if (status != STOR_STATUS_SUCCESS) {
         ans_log("find: evaluating _DSD failed (0x%x)", status);

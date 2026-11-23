@@ -94,12 +94,13 @@ first failure and ends with `Model test and host test passed`.
 
 ## The `ans` log
 
-`ans.sys` keeps its log in its own memory: a header that starts with the 16 bytes
-`SiliconNTansLog1`, a block of counters, and a ring of text lines. The layout is at the top
-of `ans/log.h`. It is there to be read without a debugger, from a copy of the machine's
-memory taken after the guest is stopped; with a debugger it is the symbol
-`ans!g_ans_log`, and each line also goes to the debugger. The log never holds the disk's
-serial number or anything read from the disk.
+`ans.sys` keeps its log in memory of its own, which it never gives back, so the log is
+still there after Windows unloads a driver whose device did not start: 4 KiB pages that
+each start with the 16 bytes `SiliconNTansLog1`, one page of counters and a ring of text
+lines. The layout is at the top of `ans/log.h`. It is there to be read without a debugger,
+from a copy of the machine's physical memory taken after the guest is stopped; with a
+debugger it is `dx *ans!g_ans_log`, and each line also goes to the debugger. The log never
+holds the disk's serial number or anything read from the disk.
 
 ## License
 

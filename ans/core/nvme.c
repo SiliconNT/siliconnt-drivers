@@ -581,8 +581,8 @@ static int nvme_identify(struct ans_core *core)
     info->blocks = nsze;
     info->block_size = 1u << lbads;
 
-    ans_log(core, "nvme: model \"%s\" serial \"%s\" firmware \"%s\"", info->model, info->serial,
-            info->firmware);
+    /* not the serial number: logs leave the machine (SiliconNT plan 0009, R38) */
+    ans_log(core, "nvme: model \"%s\" firmware \"%s\"", info->model, info->firmware);
     ans_log(core, "nvme: namespace 1: %llu blocks of %u bytes, MDTS %u bytes",
             (unsigned long long)info->blocks, info->block_size, info->mdts_bytes);
 

@@ -267,6 +267,9 @@ static void check_start_stop(bool interrupts)
     CHECK(strcmp(info->serial, "FAKE0123456789ABCDEF") == 0);
     CHECK(strncmp(info->model, "APPLE SSD AP0512Z   ", 20) == 0 && strlen(info->model) == 40);
     CHECK(strcmp(info->firmware, "2000.1.0") == 0);
+    /* the serial number is answered to Windows but never logged: logs leave the machine */
+    CHECK(env_logged(&r->env, "APPLE SSD AP0512Z"));
+    CHECK(!env_logged(&r->env, "FAKE0123456789ABCDEF"));
 
     /* identify controller, identify namespace, create CQ, create SQ, in that order */
     CHECK(f->ncmds == 4);
